@@ -3,11 +3,14 @@ require('Database.php');
 class Model extends Database{
 	
 	public function insertData($model_name,$manu_dd,$color,$manu_year,$reg_no,$note,$image1,$image2){
+		
+		$path1 = "uploads/".$image1['name'];
+		$path2 = "uploads/".$image2['name'];
 		move_uploaded_file($image1['tmp_name'],'uploads/'.$image1['name']);
 		move_uploaded_file($image2['tmp_name'],'uploads/'.$image2['name']);
 		
-		$inertQ = "INSERT INTO `tbl_model`(`manu_id`, `model_name`, `qty`, `color`, `manu_year`, `reg_no`, `note`, `image_path_1`, `image_path_2`) 
-					VALUES ('".$manu_dd."','".$model_name."','','".$color."','".$manu_year."','".$reg_no."','".$note."','uploads/'".$image1['name']."','uploads/'".$image2['name']."')";		
+		$inertQ = "INSERT INTO `tbl_model`(`manu_id`, `model_name`, `qty`, `color`, `manu_year`, `reg_no`, `note`, `image_path_1`, `image_path_2`,`created_date`) 
+					VALUES ('".$manu_dd."','".$model_name."','','".$color."','".$manu_year."','".$reg_no."','".$note."','".$path1."','".$path2."',now())";		
 		$this->runQuery($inertQ);			
 	}
 	
@@ -21,6 +24,7 @@ class Model extends Database{
 }
 
 $conn = new Model();
+
 if(isset($_POST)){
 	$model_name = $conn->clearText($_POST['model_name']);
 	$manu_dd = $_POST['manu_dd'];
