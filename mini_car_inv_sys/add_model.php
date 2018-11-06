@@ -1,3 +1,17 @@
+<?php
+require_once('Database.php');
+$db = new Database();
+
+$getManuData = "select * from tbl_manufacturer";
+$result = $db->runQuery($getManuData);
+$manuoptions = "<option value='select'>Select</option>";
+
+if($result->num_rows > 0){
+	while($row = $result->fetch_assoc()){
+		$manuoptions .= "<option value='".$row['manu_id']."'>".$row['manu_name']."</option>";
+	}
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 	<head>
@@ -32,9 +46,7 @@
 					<div class="col-md-2"><label>Manufacturer<b style="color:red;">*</b> :</label></div>
 					<div class="col-md-3">
 						<select class="form-control" id="manu_dd" name="manu_dd">
-							<option value="select">Select</option>
-							<option value="1">Maruti</option>
-							<option value="2">Suzuki</option>
+							<?php echo $manuoptions;?>
 						</select>
 					</div>
 				</div>
