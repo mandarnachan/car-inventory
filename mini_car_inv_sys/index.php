@@ -1,19 +1,18 @@
 <?php require_once('Database.php');
 $conn = new Database();
-$query = "SELECT tm.id,tm.model_name,manu.manu_name,tm.qty 
-FROM `tbl_model` tm
-JOIN tbl_manufacturer manu on (manu.manu_id = tm.manu_id);";
+$query = "SELECT tmod.id,tmod.manu_id,manu.manu_name,tmod.model_name,COUNT(tmod.model_name) as 'count' 
+FROM `tbl_model` tmod
+JOIN tbl_manufacturer manu on (manu.manu_id = tmod.manu_id)
+WHERE tmod.deleted=0 GROUP BY tmod.manu_id,tmod.model_name";
 $result = $conn->runQuery($query);
 $data = array();
-$count = 0;
-
+$sr_no = 0;
 if($result->num_rows > 0){
 	while($row = $result->fetch_assoc()){
-		$data['id'][$count++] = $row['id'];
-		$data['model_name'][$count++] = $row['model_name'];
+		array_push($data,$row);
 	}
 }
-echo "<pre>";print_r($data);echo "</pre>";
+//echo "<pre>";print_r($data);echo "</pre>";
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -42,22 +41,19 @@ echo "<pre>";print_r($data);echo "</pre>";
 							<th>Manufaturer Name</th>
 							<th>Model Name</th>
 							<th>Count</th>
-							<th>Edit</th>
+							<!--th>Edit</th-->
 						</tr>
 					</thead>
 					<tbody>
-						<?php if($result->num_rows > 0){
-								while($row = $result->fetch_assoc()){
-									$count++;?>
-									<tr>
-										<td><?php echo $count;?></td>
-										<td><?php echo $row['model_name'];?></td>
-										<td><?php echo $row['manu_name'];?></td>
-										<td><?php echo $row['qty'];?></td>
-										<td><a href="add_model.php?pk=<?php echo $row['id'];?>"><input type="button" id="edit_btn" class="btn-info" value="Edit"></td>
-									</tr>
-							<?php	}
-							}?>
+						<?php foreach($data as $key=>$value){ $sr_no++?>
+							<tr>
+								<td><?php echo  $sr_no;?></td>
+								<td><?php echo  $value['manu_name'];?><input type="hidden" id="manu_id<?php echo $sr_no;?>" name="manu_id<?php echo $sr_no;?>" value="<?php echo $value['manu_id'];?>" /></td>
+								<td><?php echo  $value['model_name'];?></td>
+								<td><?php echo  $value['count'];?></td>
+								<!--td><?php echo  '';?></td-->
+							</tr>
+						<?php }?>
 					</tbody>
 				</table>
 			</div>	
@@ -69,19 +65,9 @@ echo "<pre>";print_r($data);echo "</pre>";
 						  <button type="button" class="close" data-dismiss="modal">&times;</button>
 						  <h4 class="modal-title">Modal Header</h4>
 						</div>
-						<div class="modal-body">
-							<table class="table table-bordered table-striped" id="manuTBL">
-								<tbody>
-									<tr><td>Model Name :</td><td></td></tr>
-									<tr><td>Manufacturer Name :</td><td></td></tr>
-									<tr><td>Color :</td><td></td></tr>
-									<tr><td>Count :</td><td></td></tr>
-									<tr><td>Image1 :</td><td></td></tr>
-								</tbody>
-							</table>	
-						</div>
+						<div class="modal-body"></div>
 						<div class="modal-footer">
-							<button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
+							<button type="button" class="btn btn-default" data-dismiss="modal" onclick="javascript:window.location='index.php';">Close</button>
 						</div>
 					</div>
 				</div>
@@ -91,8 +77,61 @@ echo "<pre>";print_r($data);echo "</pre>";
 	<script type="text/javascript">
 		$(document).ready(function(){
 			$('#manuTBL tr').click(function(){
-				$('#myModal').modal('show');
+				showModalData($(this).children('td:eq(2)').text(),$(this).index());
 			});
 		});
+		
+		function showModalData(model_name,trIndex){
+			console.log('#manu_id'+(parseInt(trIndex)+1));
+			$.ajax
+			({
+				type:"POST",
+				url:"showModalData.php",	
+				data : {
+						'model_name':model_name,
+						'manu_id' : $('#manu_id'+(parseInt(trIndex)+1)).val(),
+						},
+				success: function(data)
+				{	
+					if(data!=''){
+						$('.modal-body').empty();
+						var modalData = JSON.parse(data);
+						var tbody= "";
+						for(var i=0;i<modalData.length;i++){
+							tbody += "<table class='table table-bordered table-striped' id='manuTBL'><tbody id='modalTbody'>"+
+								"<tr><td>Model Name :</td><td>"+modalData[i].model_name+"</td></tr>"+
+								"<tr><td>Manufacturer Name :</td><td>"+modalData[i].manu_name+"</td></tr>"+
+								"<tr><td>Color :</td><td>"+modalData[i].color+"</td></tr>"+
+								"<tr><td colspan='2'><input type='button' class='btn-info' value='Sold' onclick='javascript:updateInv(\""+modalData[i].id+"\",\""+modalData[i].model_name+"\",\""+trIndex+"\");'/></td></tr>"+
+								"</tbody></table>";
+						}
+						$('.modal-body').append(tbody);	
+						$('#myModal').modal('show');
+					}
+					
+				},
+				async: false
+			});
+		}
+		
+		function updateInv(id,modelName,trIn){
+			$.ajax
+			({
+				type:"POST",
+				url:"updateInv.php",	
+				data : {
+						'id':id,
+						},
+				success: function(data)
+				{	
+					if(data==1){
+						showModalData(modelName,trIn)
+					}else{
+						alert("unable to update");
+					}
+				},
+				async: false
+			});
+		}
 	</script>
 </html>
